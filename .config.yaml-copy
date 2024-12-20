@@ -1,0 +1,4 @@
+os:
+  # this will edit the file in the current neovim sesh (See https://github.com/kdheepak/lazygit.nvim/issues/22)
+  edit: "nvr -cc 'lua LazyGitToggle()' --remote +'set bufhidden=hide' {{filename}}" 
+promptToReturnFromSubprocess: false
