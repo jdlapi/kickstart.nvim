@@ -1,0 +1,79 @@
+launch () {
+echo "Launching Trax"
+/usr/bin/osascript <<-EOF
+tell application "iTerm"
+  activate
+
+  set W to current window
+  if W = missing value then set W to create window with default profile
+  tell W's current session
+      split vertically with default profile
+      split vertically with default profile
+  end tell
+  set T to W's current tab
+  write T's session 1 text "cd ~/Desktop/Projects/v2/SecurityTrax"
+  write T's session 1 text "launchctl start com.docker.docker"
+  write T's session 1 text "docker-compose up"
+  write T's session 2 text "cd ~/Desktop/Projects/v3/SecurityTrax-Ember"
+  write T's session 2 text "nvm use 14"
+  write T's session 2 text "./bin/frontend.sh"
+  write T's session 3 text "cd ~/Desktop/Projects/v2/SecurityTrax/logs"
+  write T's session 3 text "tail -f clog.log"
+end tell
+
+--Open a tab with v2 in nvim
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects/v2/SecurityTrax"
+      write text "nvim"
+    end tell
+  end tell
+end tell
+
+--Open a tab with v3 in nvim
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects/v3/SecurityTrax-Ember"
+      write text "nvim"
+    end tell
+  end tell
+end tell
+
+--Open a tab with v2 translations in nvim
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects/v2/SecurityTrax/vendor/tmp/translations"
+      write text "nvim"
+    end tell
+  end tell
+end tell
+
+--Open a tab with kickstart in nvim
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd .config/nvim"
+      write text "nvim"
+    end tell
+  end tell
+end tell
+
+--Open a tab for terminal commands
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects"
+    end tell
+  end tell
+end tell
+EOF
+}
+launch

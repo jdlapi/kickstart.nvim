@@ -1,0 +1,37 @@
+launch_los () {
+echo "Launching LOS"
+/usr/bin/osascript <<-EOF
+tell application "iTerm"
+    activate
+
+    set W to current window
+    if W = missing value then set W to create window with default profile
+    set T to W's current tab
+    write T's session 1 text "cd ~/Desktop/Projects/los-web"
+    write T's session 1 text "systemctl start docker"
+    write T's session 1 text "docker-compose up"
+end tell
+
+--Open a tab with los-web in nvim
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects/los-web"
+      write text "nvim ."
+    end tell
+  end tell
+end tell
+
+--Open a tab for terminal commands
+tell application "iTerm2"
+  tell current window
+    set newTab to (create tab with default profile)
+    tell current session of newTab
+      write text "cd Desktop/Projects"
+    end tell
+  end tell
+end tell
+EOF
+}
+launch_los
