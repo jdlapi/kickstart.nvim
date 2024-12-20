@@ -310,7 +310,28 @@ require('lazy').setup({
     version = '*',
     opts = {},
     config = function()
-      require('toggleterm').setup {}
+      require('toggleterm').setup {
+        on_open = function()
+          vim.keymap.del('n', '<C-k>')
+          vim.keymap.del('i', '<C-k>')
+          vim.keymap.del('t', '<C-k>')
+          vim.keymap.del('v', '<C-k>')
+          vim.keymap.del('n', '<C-j>')
+          vim.keymap.del('i', '<C-j>')
+          vim.keymap.del('t', '<C-j>')
+          vim.keymap.del('v', '<C-j>')
+        end,
+        on_close = function()
+          vim.keymap.set('n', '<C-k>', '<cmd>bnext<cr>', { desc = 'Move to the next buffer in the current list' })
+          vim.keymap.set('i', '<C-k>', '<cmd>bnext<cr>', { desc = 'Move to the next buffer in the current list' })
+          vim.keymap.set('t', '<C-k>', '<cmd>bnext<cr>', { desc = 'Move to the next buffer in the current list' })
+          vim.keymap.set('v', '<C-k>', '<cmd>bnext<cr>', { desc = 'Move to the next buffer in the current list' })
+          vim.keymap.set('n', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
+          vim.keymap.set('i', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
+          vim.keymap.set('t', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
+          vim.keymap.set('v', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
+        end,
+      }
 
       local map = vim.keymap.set
       local Terminal = require('toggleterm.terminal').Terminal
