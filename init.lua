@@ -1,4 +1,24 @@
 --[[
+Default vim reference
+a  append
+b  back
+c  change
+d  delete
+e  end
+f  find
+i  insert
+m  mark
+n  next
+o  open
+p  put
+r  replace
+s  substitute
+t  till
+u  undo
+v  visual
+w  word
+x  x
+y  yank
 
 =====================================================================
 ==================== READ THIS BEFORE CONTINUING ====================
@@ -173,12 +193,29 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- Set default tab settings
+vim.opt.expandtab = true       -- enable expandtab (use tabs instead of spaces)
+vim.opt.tabstop = 4            -- Set tab width to 4 spaces
+vim.opt.shiftwidth = 4         -- Set shift width to 4 spaces
+
+-- Automatically add newline to the end of a file
+vim.opt.fixendofline = false
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+-- Disable virtual text by default
+vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+  vim.lsp.diagnostic.on_publish_diagnostics, {
+    virtual_text = false,  -- Disable virtual text diagnostics
+    signs = false,          -- Enable signs in the gutter (if desired)
+    update_in_insert = false,  -- Disable diagnostics updates while typing
+  }
+)
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
@@ -218,35 +255,194 @@ vim.keymap.set('t', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer
 vim.keymap.set('v', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
 vim.keymap.set('n', '<leader>x', '<cmd>bdelete<cr><cmd>bprev<cr>', { desc = 'Delete the current buffer' })
 vim.keymap.set('t', '<leader>x', '<cmd>bdelete<cr><cmd>bprev<cr>', { desc = 'Delete the current buffer' })
-vim.keymap.set('v', '<leader>x', '<cmd>bdelete<cr><cmd>bprev<cr>', { desc = 'Delete the current buffer' })
+vim.keymap.set('n', '<leader>bv', '', { desc = '[B]reak/split vertically' })
+vim.keymap.set('t', '<leader>bv', '<cmd>vsplit<cr>', { desc = '[B]reak/split vertically' })
+vim.keymap.set('n', '<leader>bh', '<cmd>split<cr>', { desc = '[B]reak/split horizontally' })
+vim.keymap.set('t', '<leader>bh', '<cmd>split<cr>', { desc = '[B]reak/split horizontally' })
+vim.keymap.set('n', '<leader>bc', '<cmd>close<cr>', { desc = '[B]reak/split close' })
+vim.keymap.set('t', '<leader>bc', '<cmd>close<cr>', { desc = '[B]reak/split close' })
 vim.keymap.set('n', '<leader>i', '<cmd>Inspect<cr>', { desc = '[I]nspect under the cursor' })
 vim.keymap.set('n', '<Tab>', '>>', { desc = 'Indent the line under the cursor' })
 vim.keymap.set('v', '<Tab>', '>gv', { desc = 'Indent the currently selected text' })
 vim.keymap.set('n', '<S-Tab>', '<<', { desc = 'Outdent the line under the cursor' })
 vim.keymap.set('v', '<S-Tab>', '<gv', { desc = 'Outdent the currently selected text' })
-vim.keymap.set('n', '<cr>', 'ciw', { desc = 'Call smart c function' })
-vim.keymap.set('n', '<S-cr>', 'viw', { desc = 'Call smart v function' }) -- TODO have these call a function that inetlegently cits inside
-vim.keymap.set('n', '<C-cr>', 'yiw', { desc = 'Call smart y function' })
+vim.keymap.set('n', 'gp', 'v`]o`[', { desc = '[G]rab the previously [P]ut text' })
+-- vim.keymap.set('n', '<leader>fd', '<cmd>FormatDisable<cr>', { desc = 'Disable autoformat-on-save' })
+vim.keymap.set('x', 'p', '"_dP', { desc = '[P]ut without yanking' })
+vim.keymap.set('n', '<leader>w', '<cmd>w<cr>', { desc = '[W]rite the current buffer' })
+vim.keymap.set('n', '<leader>td', function() vim.diagnostic.enable(not vim.diagnostic.is_enabled()) end, { desc = '[T]oggle [D]iagnostics', silent = true, noremap = true })
+
+-- Track the current state of virtual_text
+local virtual_text_enabled = false
+vim.keymap.set('n', '<leader>tv', function()
+  virtual_text_enabled = not virtual_text_enabled  -- Toggle the state
+-- <<><><><><<<(<<>> () match test () <> hello <>)>>>>
+-- (<> test ()<>)
+-- (<> hello>
+
+  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+    vim.lsp.diagnostic.on_publish_diagnostics, {
+      virtual_text = virtual_text_enabled,
+      signs = virtual_text_enabled,
+    }
+  )
+end, { desc = '[T]oggle [V]irtual Text', silent = true, noremap = true })
+vim.keymap.set('n', '<leader>te', function()
+  local filepath = vim.fn.expand('%:p')
+  vim.cmd('e ++bin')
+  vim.opt_local.endofline = not vim.opt_local.endofline:get()
+  vim.opt_local.fileformat = 'unix'
+  vim.opt.binary = false
+  vim.opt_local.binary = false
+  vim.cmd('w')
+  vim.cmd('e ' .. vim.fn.fnameescape(filepath))
+end, {})
+
+-- Smart select
+local function smartSelect(op, around)
+  local command_letter = 'i'
+  if around then
+    command_letter = 'a'
+  end
+  local command = command_letter .. 'w'
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  col = col + 1
+  local line = vim.api.nvim_get_current_line()
+
+  local opening_pairs = {
+    ['('] = ')',
+    ['['] = ']',
+    ['{'] = '}',
+    ['<'] = '>',
+    ['"'] = '"',
+    ["'"] = "'",
+    ['`'] = '`',
+  }
+
+  local closing_pairs = {}
+  for open, close in pairs(opening_pairs) do
+    closing_pairs[close] = open
+  end
+
+  -- Function to check balance of opening and closing characters in the line
+  local function check_balance(starting_index, ending_index, reverse)
+    local char_to_match = line:sub(starting_index, starting_index)
+    local count = 0
+    local match_count = 0
+    local idx = reverse and starting_index - 1 or starting_index + 1
+
+    while (reverse and idx > ending_index) or (not reverse and idx < ending_index) do
+      local char = line:sub(idx, idx)
+      if char == char_to_match then
+        count = count + 1
+      elseif char == opening_pairs[char_to_match] or char == closing_pairs[char_to_match] then
+        match_count = match_count + 1
+      end
+
+      if match_count > count then
+        return false
+      end
+
+      -- Move to the next index
+      idx = reverse and idx - 1 or idx + 1
+    end
+
+    return true
+  end
+
+  -- Searches for `ending_char` from `starting_index`, moving forward or backward
+  local function find_valid_match(char, char_index, reverse)
+    local match_char = reverse and closing_pairs[char] or opening_pairs[char] --might be reversed
+    local symetrical_pair = char == match_char
+    local step = reverse and -1 or 1
+    local index = col + step
+    while index >= 1 and index <= #line do
+      if line:sub(index, index) == match_char then
+        if symetrical_pair then
+          local left_count = 0
+          local right_count = 0
+          if reverse then
+            left_count = select(2, line:sub(1, col - 1):gsub(vim.pesc(char), ""))
+            right_count = select(2, line:sub(col, #line):gsub(vim.pesc(char), ""))
+          else
+            left_count = select(2, line:sub(1, col):gsub(vim.pesc(char), ""))
+            right_count = select(2, line:sub(col + 1, #line):gsub(vim.pesc(char), ""))
+          end
+
+          if left_count % 2 == 1 and right_count % 2 == 1 then
+            return index
+          end
+        else
+          if check_balance(char_index, col, reverse) and check_balance(index, col, not reverse) then --might be reversed
+            return index
+          end
+        end
+      end
+      index = index + step
+    end
+    return 0
+  end
+
+  local search_distance = math.min(col, #line - col + 1)
+
+  for offset = 0, search_distance do
+    -- Check left for an opening char and look right for its pair
+    local left_index = col - offset
+    if left_index >= 1 then
+      local char = line:sub(left_index, left_index)
+      local match = opening_pairs[char]
+      if match and find_valid_match(char, left_index, false) > 0 then
+        command = command_letter .. char
+        break
+      end
+    end
+
+    -- Check right for a closing char and look left for its pair
+    local right_index = col + offset
+    if right_index <= #line then
+      local char = line:sub(right_index, right_index)
+      local match = closing_pairs[char]
+      if match and find_valid_match(char, right_index, true) > 0 then
+        command = command_letter .. char
+        break
+      end
+    end
+  end
+
+  -- fallback if no match found
+  vim.notify(op .. command)
+  -- vim.cmd("normal " .. op .. command)
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(op .. command, true, false, true), 'n', true)
+end
+vim.keymap.set('n', 'c<SPACE>', function() smartSelect('c', false) end, { desc = '[c][i]nner smart select' })
+vim.keymap.set('n', 'y<SPACE>', function() smartSelect('y', false) end, { desc = '[y][i]nner smart select' })
+vim.keymap.set('n', 'v<SPACE>', function() smartSelect('v', false) end, { desc = '[v][i]nner smart select' })
+vim.keymap.set('n', 'd<SPACE>', function() smartSelect('d', false) end, { desc = '[v][i]nner smart select' })
+vim.keymap.set('n', 'c<CR>', function() smartSelect('c', true) end, { desc = '[C][a]round smart select' })
+vim.keymap.set('n', 'y<CR>', function() smartSelect('y', true) end, { desc = '[Y][a]round smart select' })
+vim.keymap.set('n', 'v<CR>', function() smartSelect('v', true) end, { desc = '[V][a]round smart select' })
+vim.keymap.set('n', 'd<CR>', function() smartSelect('d', true) end, { desc = '[v][a]nner smart select' })
+
 
 -- [[ Custom Commands ]]
 -- PLACE YOUR CUSTOM COMMANDS HERE
-vim.api.nvim_create_user_command('FormatDisable', function(args)
-  if args.bang then
-    -- FormatDisable! will disable formatting just for this buffer
-    vim.b.disable_autoformat = true
-  else
-    vim.g.disable_autoformat = true
-  end
-end, {
-  desc = 'Disable autoformat-on-save',
-  bang = true,
-})
-vim.api.nvim_create_user_command('FormatEnable', function()
-  vim.b.disable_autoformat = false
-  vim.g.disable_autoformat = false
-end, {
-  desc = 'Re-enable autoformat-on-save',
-})
+-- vim.api.nvim_create_user_command('FormatDisable', function(args)
+--   if args.bang then
+--     -- FormatDisable! will disable formatting just for this buffer
+--     vim.b.disable_autoformat = true
+--   else
+--     vim.g.disable_autoformat = true
+--   end
+-- end, {
+--   desc = 'Disable autoformat-on-save',
+--   bang = true,
+-- })
+-- vim.api.nvim_create_user_command('FormatEnable', function()
+--   vim.b.disable_autoformat = false
+--   vim.g.disable_autoformat = false
+-- end, {
+--   desc = 'Re-enable autoformat-on-save',
+-- })
 
 -- [[Custom Autocommands]]
 -- PLACE YOUR CUSTOM AUTOCOMMANDS HERE
@@ -280,7 +476,7 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  --'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically (I commented this out becuase it was causing problems with inconsistently tabbed php files)
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -331,6 +527,21 @@ require('lazy').setup({
           vim.keymap.set('t', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
           vim.keymap.set('v', '<C-j>', '<cmd>bprev<cr>', { desc = 'Move to the prev buffer in the current list' })
         end,
+        float_opts = {
+          -- The border key is *almost* the same as 'nvim_open_win'
+          -- see :h nvim_open_win for details on borders however
+          -- the 'curved' border is a custom border type
+          -- not natively supported but implemented in this plugin.
+          border = 'curved', -- 'single' | 'double' | 'shadow' | 'curved' | ... other options supported by win open
+          -- like `size`, width, height, row, and col can be a number or function which is passed the current terminal
+          width = 235,
+          height = 57,
+          -- row = <value>,
+          -- col = <value>,
+          -- winblend = 3,
+          -- zindex = <value>,
+          -- title_pos = 'left' | 'center' | 'right', position of the title of the floating window
+        },
       }
 
       local map = vim.keymap.set
@@ -367,72 +578,39 @@ require('lazy').setup({
       map('v', '<C-\\>', '<cmd>lua ToggleTermToggle()<CR>', { noremap = true, silent = true })
     end,
   },
-  { -- FLATTEN
-    'willothy/flatten.nvim',
-    opts = function()
-      ---@type Terminal?
-      local saved_terminal
-
-      return {
-        window = {
-          open = 'alternate',
-        },
-        callbacks = {
-          should_block = function(argv)
-            -- Note that argv contains all the parts of the CLI command, including
-            -- Neovim's path, commands, options and files.
-            -- See: :help v:argv
-
-            -- In this case, we would block if we find the `-b` flag
-            -- This allows you to use `nvim -b file1` instead of
-            -- `nvim --cmd 'let g:flatten_wait=1' file1`
-            return vim.tbl_contains(argv, '-b')
-
-            -- Alternatively, we can block if we find the diff-mode option
-            -- return vim.tbl_contains(argv, "-d")
-          end,
-          pre_open = function()
-            local term = require 'toggleterm.terminal'
-            local termid = term.get_focused_id()
-            saved_terminal = term.get(termid)
-          end,
-          post_open = function(bufnr, winnr, ft, is_blocking)
-            if is_blocking and saved_terminal then
-              -- Hide the terminal while it's blocking
-              saved_terminal:close()
-            else
-              -- If it's a normal file, just switch to its window
-              vim.api.nvim_set_current_win(winnr)
-
-              -- If we're in a different wezterm pane/tab, switch to the current one
-              -- Requires willothy/wezterm.nvim
-              require('wezterm').switch_pane.id(tonumber(os.getenv 'WEZTERM_PANE'))
-            end
-
-            -- If the file is a git commit, create one-shot autocmd to delete its buffer on write
-            -- If you just want the toggleable terminal integration, ignore this bit
-            -- if ft == "gitcommit" or ft == "gitrebase" then
-            --   vim.api.nvim_create_autocmd("BufWritePost", {
-            --     buffer = bufnr,
-            --     once = true,
-            --     callback = vim.schedule_wrap(function()
-            --       vim.api.nvim_buf_delete(bufnr, {})
-            --     end),
-            --   })
-            -- end
-          end,
-          block_end = function()
-            -- After blocking ends (for a git commit, etc), reopen the terminal
-            vim.schedule(function()
-              if saved_terminal then
-                saved_terminal:open()
-                saved_terminal = nil
-              end
-            end)
-          end,
-        },
-      }
-    end,
+  { -- SMEARCURSOR
+    'sphamba/smear-cursor.nvim',
+    version = '*',
+    opts = {
+      smear_between_buffers = true,
+      smear_between_neighbor_lines = true,
+      scroll_buffer_space = true,
+      legacy_computing_symbols_support = false,
+      smear_insert_mode = true,
+    },
+  },
+  { -- NEOSCROLL
+    'karb94/neoscroll.nvim',
+    opts = {
+      mappings = {
+        '<C-u>', '<C-d>',
+        '<C-b>', '<C-f>',
+        '<C-y>', '<C-e>',
+        'zt', 'zz', 'zb',
+      },
+      hide_cursor = true,
+      stop_eof = true,
+      respect_scrolloff = false,
+      cursor_scrolls_alone = true,
+      duration_multiplier = 1.0,
+      easing = 'linear',
+      pre_hook = nil,
+      post_hook = nil,
+      performance_mode = false,
+      ignored_events = {
+        'WinScrolled', 'CursorMoved'
+      },
+    },
   },
   { -- HOP
     'smoka7/hop.nvim',
@@ -502,7 +680,7 @@ require('lazy').setup({
     'rmagatti/auto-session',
     lazy = false,
     config = function()
-      vim.o.sessionoptions = 'blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions'
+      vim.o.sessionoptions = 'blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal'--,localoptions'
       require('auto-session').setup {
         log_level = 'error',
         no_restore = {
@@ -867,7 +1045,7 @@ require('lazy').setup({
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
-          map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction', { 'n', 'x' })
+          map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction', { 'n' }) -- I removed 'x' mode
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
@@ -958,7 +1136,17 @@ require('lazy').setup({
             },
           },
         },
-        intelephense = {
+        phpactor = {
+          capabilities = {
+            textDocument = {
+              foldingRange = {
+                dynamicRegistration = false,
+                lineFoldingOnly = true,
+              },
+            },
+          },
+        },
+        html = {
           capabilities = {
             textDocument = {
               foldingRange = {
@@ -1041,31 +1229,32 @@ require('lazy').setup({
         function()
           require('conform').format { async = true, lsp_format = 'fallback' }
         end,
-        mode = '',
+        mode = 'n',
         desc = '[F]ormat buffer',
       },
     },
     opts = {
       notify_on_error = false,
-      format_on_save = function(bufnr)
-        -- Disable "format_on_save lsp_fallback" for languages that don't
-        -- have a well standardized coding style. You can add additional
-        -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
-        local lsp_format_opt
-        if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
-          return
-        end
-        if disable_filetypes[vim.bo[bufnr].filetype] then
-          lsp_format_opt = 'never'
-        else
-          lsp_format_opt = 'fallback'
-        end
-        return {
-          timeout_ms = 500,
-          lsp_format = lsp_format_opt,
-        }
-      end,
+      format_on_save = false,
+      -- format_on_save = function(bufnr)
+      --   -- Disable "format_on_save lsp_fallback" for languages that don't
+      --   -- have a well standardized coding style. You can add additional
+      --   -- languages here or re-enable it for the disabled ones.
+      --   local disable_filetypes = { c = true, cpp = true }
+      --   local lsp_format_opt
+      --   if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+      --     return
+      --   end
+      --   if disable_filetypes[vim.bo[bufnr].filetype] then
+      --     lsp_format_opt = 'never'
+      --   else
+      --     lsp_format_opt = 'fallback'
+      --   end
+      --   return {
+      --     timeout_ms = 500,
+      --     lsp_format = lsp_format_opt,
+      --   }
+      -- end,
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
@@ -1297,7 +1486,21 @@ require('lazy').setup({
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
-      require('mini.surround').setup()
+      require('mini.surround').setup({
+        mappings = {
+          add = 'ea', -- Add surrounding in Normal and Visual modes
+          --e.g. eaiw) - [e]nclose [A]dd [I]nner [W]ord [)]Paren
+          --e.g. eaa}) - [e]nclose [A]dd [A]round [}]Braces [)]Paren
+          delete = 'ed', -- Delete surrounding
+          --e.g.    ed"   - [e]nclose [D]elete ["]quotes
+          replace = 'er', -- Replace surrounding
+          --e.g.     er)'  - [e]nclose [R]eplace [)]Paren by [']quote
+          find = 'ef', -- Find surrounding (to the right)
+          find_left = 'eF', -- Find surrounding (to the left)
+          highlight = 'eh', -- Highlight surrounding
+          update_n_lines = 'en', -- Update `n_lines`
+        }
+      })
 
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
@@ -1335,6 +1538,14 @@ require('lazy').setup({
         additional_vim_regex_highlighting = { 'ruby' },
       },
       indent = { enable = true, disable = { 'ruby' } },
+      incremental_selection = {
+        enable = true,
+        keymaps = {
+          init_selection = "<CR>",
+          node_incremental = "<CR>",
+          node_decremental = "<S-CR>",
+        },
+      },
     },
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
