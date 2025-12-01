@@ -562,6 +562,21 @@ require('lazy').setup({
         toggleterm:toggle(1, 'float')
       end
 
+      map('n', '<A-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
+      map('i', '<A-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
+      map('t', '<A-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
+      map('v', '<A-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
+
+      map('n', '<A-.>', '<cmd>lua LazyDockerToggle()<CR>', { noremap = true, silent = true })
+      map('i', '<A-.>', '<cmd>lua LazyDockerToggle()<CR>', { noremap = true, silent = true })
+      map('t', '<A-.>', '<cmd>lua LazyDockerToggle()<CR>', { noremap = true, silent = true })
+      map('v', '<A-.>', '<cmd>lua LazyDockerToggle()<CR>', { noremap = true, silent = true })
+
+      map('n', '<A-\\>', '<cmd>lua ToggleTermToggle()<CR>', { noremap = true, silent = true })
+      map('i', '<A-\\>', '<cmd>lua ToggleTermToggle()<CR>', { noremap = true, silent = true })
+      map('t', '<A-\\>', '<cmd>lua ToggleTermToggle()<CR>', { noremap = true, silent = true })
+      map('v', '<A-\\>', '<cmd>lua ToggleTermToggle()<CR>', { noremap = true, silent = true })
+
       map('n', '<C-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
       map('i', '<C-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
       map('t', '<C-,>', '<cmd>lua LazyGitToggle()<CR>', { noremap = true, silent = true })
