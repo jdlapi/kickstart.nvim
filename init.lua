@@ -195,8 +195,8 @@ vim.opt.scrolloff = 10
 
 -- Set default tab settings
 vim.opt.expandtab = true       -- enable expandtab (use tabs instead of spaces)
-vim.opt.tabstop = 4            -- Set tab width to 4 spaces
-vim.opt.shiftwidth = 4         -- Set shift width to 4 spaces
+vim.opt.tabstop = 2           -- Set tab width to 4 spaces
+vim.opt.shiftwidth = 2         -- Set shift width to 4 spaces
 
 -- Automatically add newline to the end of a file
 vim.opt.fixendofline = false
